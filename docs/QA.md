@@ -11,7 +11,9 @@ The 40-test local suite covers rectangle math, filenames, safe paths, settings, 
 ## Local verification record
 
 - Type checking, 40 tests, build and archive generation: passed on 2026-10-15 (Dhaka).
-- Loaded browser test: blocked locally because no Chromium executable was installed and browser downloads failed through the environment's network proxy. CI installs Chrome and runs this test as a required step before release publication.
+- Loaded browser test: passed remotely in Chrome for Testing through [CI](https://github.com/smile-plzz/Element-Screenshot-Extension/actions/runs/38633658703) and [release verification](https://github.com/smile-plzz/Element-Screenshot-Extension/actions/runs/38633658606). Verified a native 480 x 320 PNG, exact green edge pixels (no overlay), clipboard, download, locking, Enter, cancellation and settings validation. Local browser installation was blocked by the environment proxy, so the real browser check ran on GitHub.
+- Dependency audit: zero reported vulnerabilities after updating test dependencies. CI enforces npm audit before verification.
+- Published packages: [v1.0.1](https://github.com/smile-plzz/Element-Screenshot-Extension/releases/tag/v1.0.1), released only after all automated checks passed.
 - Firefox runtime and Microsoft Edge runtime: manual verification pending. Firefox is a compatibility build, not a claim of tested store acceptance.
 - Ten real sites, paste into external editors and two weeks of owner usage: pending. Do not present these as completed acceptance criteria.
 

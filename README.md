@@ -2,7 +2,7 @@
 
 Click a component, get the screenshot. A local-only browser extension that captures the visible pixels of a selected element as a PNG, copies it and saves it to Downloads.
 
-**Version 1.0.1:** source and browser packages are prepared. Store publication and manual browser/site acceptance remain separate steps, tracked in [QA](docs/QA.md) and [Release guide](docs/RELEASE.md).
+**Version 1.0.1:** [released with downloadable browser packages](https://github.com/smile-plzz/Element-Screenshot-Extension/releases/tag/v1.0.1), 40 passing tests and a passing real Chromium capture/clipboard/download check. Store publication and manual browser/site acceptance remain separate steps, tracked in [QA](docs/QA.md) and [Release guide](docs/RELEASE.md).
 
 ## Install and use
 
