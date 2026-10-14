@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 - 2026-10-15
+
+Added scroll-to-expand/shrink selection and Shift-drag custom area capture, including live dimensions, reverse drags, cancellation, tiny-drag protection and event cleanup. Added behavioral and real-browser coverage for both controls.
+
 ## 1.0.1 - 2026-10-15
 
 See [release notes](docs/RELEASE-NOTES.md). Fixed worker PNG encoding, overlay contamination, duplicate captures, zoom-out scaling, unsafe filename/path handling, inaccurate feedback and Firefox manifest adaptation. Added Enter capture, actual picker regression coverage, sequence filenames, validated settings, reproducible packaging and gated release automation.

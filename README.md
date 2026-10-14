@@ -2,7 +2,7 @@
 
 Click a component, get the screenshot. A local-only browser extension that captures the visible pixels of a selected element as a PNG, copies it and saves it to Downloads.
 
-**Version 1.0.1:** [released with downloadable browser packages](https://github.com/smile-plzz/Element-Screenshot-Extension/releases/tag/v1.0.1), 40 passing tests and a passing real Chromium capture/clipboard/download check. Store publication and manual browser/site acceptance remain separate steps, tracked in [QA](docs/QA.md) and [Release guide](docs/RELEASE.md).
+**Version 1.1.0:** flexible element selection and custom region capture. Download packages from [GitHub Releases](https://github.com/smile-plzz/Element-Screenshot-Extension/releases). Store publication and manual browser/site acceptance remain separate steps, tracked in [QA](docs/QA.md) and [Release guide](docs/RELEASE.md).
 
 ## Install and use
 
@@ -11,7 +11,7 @@ Click a component, get the screenshot. A local-only browser extension that captu
 3. Open an ordinary web page, click the pinned toolbar icon or press **Alt+Shift+S**, hover a component and click or press **Enter**.
 4. Paste the PNG into your editor. Files go to **Downloads/ElementShots/**. Right-click the toolbar icon and choose **Options** to change destinations, padding, filenames or continuous mode.
 
-**Controls:** Up selects parent; Down returns to child; F locks selection; Esc cancels. Captures include only visible viewport pixels. Partial results are labeled. Clipboard and save outcomes are reported separately. F does not freeze all page behavior.
+**Controls:** Scroll up expands to a parent container; scroll down returns to a child. Up/Down keys also work. Hold Shift and drag to draw a custom rectangle, then release to capture. F locks element selection; Esc cancels. During pick mode the wheel changes selection instead of scrolling the page; exit pick mode to scroll normally. Ctrl-wheel browser zoom is preserved. Tiny drags under 3 CSS pixels are ignored. Custom areas use the same padding, clipboard and save settings as element captures. Captures include only visible viewport pixels. Partial results are labeled. Clipboard and save outcomes are reported separately. F does not freeze all page behavior.
 
 **Filename tokens:** `{domain}`, `{date}`, `{time}`, `{tag}`, `{class}`, `{id}`, `{title}`, `{n}`. The sequence is session-scoped and may restart when the background worker restarts. Duplicate downloads are uniquified by the browser.
 

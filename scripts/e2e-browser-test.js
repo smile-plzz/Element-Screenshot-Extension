@@ -84,6 +84,35 @@ try {
   assert.equal(await page.evaluate(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.box').style.display), 'none');
   await page.mouse.click(110, 110);
   assert.equal(await page.evaluate(() => window.clicks), 1);
+  await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.tabs.sendMessage(tab.id, { type: 'START_PICK' });
+  });
+  await page.mouse.move(130, 130);
+  await page.waitForFunction(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.badge').textContent.includes('button#child'));
+  await page.mouse.wheel({ deltaY: -100 });
+  await page.waitForFunction(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.badge').textContent.includes('div#card'));
+  await new Promise(resolve => setTimeout(resolve, 160));
+  await page.mouse.wheel({ deltaY: 100 });
+  await page.waitForFunction(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.badge').textContent.includes('button#child'));
+  assert.equal(await page.evaluate(() => window.scrollY), 0);
+  await page.keyboard.down('Shift');
+  await page.mouse.move(105, 105); await page.mouse.down();
+  await page.mouse.move(335, 255, { steps: 5 }); await page.mouse.up();
+  await page.keyboard.up('Shift');
+  await page.waitForFunction(() => {
+    const toast = document.getElementById('elementshot-host').shadowRoot.querySelector('.toast');
+    return toast.classList.contains('visible') && toast.textContent.includes('Copied and saved') && toast.textContent.includes('_region_');
+  }, { timeout: 15000 });
+  const area = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    const bitmap = await createImageBitmap(await item.getType('image/png'));
+    return { width: bitmap.width, height: bitmap.height, clicks: window.clicks };
+  });
+  assert.equal(area.width, Math.round(230 * baselineBytes.readUInt32BE(16) / 1000));
+  assert.equal(area.height, Math.round(150 * baselineBytes.readUInt32BE(20) / 700));
+  assert.equal(area.clicks, 1);
+  console.log('PASS: scroll expands/shrinks without page scrolling; Shift-drag copies a correctly sized custom PNG without triggering page clicks.');
   const options = await browser.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
   await options.waitForSelector('#save-btn');

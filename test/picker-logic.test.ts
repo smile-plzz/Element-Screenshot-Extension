@@ -89,3 +89,46 @@ describe('real picker behavior', () => {
     expect(shadow().querySelector('.toast')!.textContent).toContain('no visible pixels');
   });
 });
+
+describe('flexible selection', () => {
+  const pointer = (type: string, x: number, y: number, shift = true) => child.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, shiftKey: shift, button: 0, bubbles: true, cancelable: true }));
+  it('scrolls up to parent and down to the original child without scrolling the page', () => {
+    child.focus(); picker.stop(); picker.start();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    document.elementFromPoint = () => child;
+    const up = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true });
+    expect(child.dispatchEvent(up)).toBe(false);
+    expect(shadow().querySelector('.badge')!.textContent).toContain('div#card');
+    now.mockReturnValue(1300);
+    child.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }));
+    expect(shadow().querySelector('.badge')!.textContent).toContain('button#child');
+  });
+  it('preserves browser zoom gestures', () => {
+    const event = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'ctrlKey', { value: true });
+    expect(child.dispatchEvent(event)).toBe(true);
+  });
+  it('captures a custom area on release with region metadata', async () => {
+    pointer('pointerdown', 20, 30);
+    pointer('pointermove', 220, 130);
+    expect(shadow().querySelector('.badge')!.textContent).toContain('Area 200 x 100');
+    pointer('pointerup', 220, 130, false);
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send.mock.calls[0][0].payload.rect).toEqual({ x: 20, y: 30, width: 200, height: 100 });
+    expect(send.mock.calls[0][0].payload.meta.tagName).toBe('region');
+  });
+  it('supports dragging in reverse and blocks the follow-up click', async () => {
+    pointer('pointerdown', 220, 130);
+    pointer('pointerup', 20, 30);
+    click();
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send.mock.calls[0][0].payload.rect).toEqual({ x: 20, y: 30, width: 200, height: 100 });
+  });
+  it('cancels an area with Escape and never captures a tiny accidental drag', () => {
+    pointer('pointerdown', 20, 30); pointer('pointerup', 21, 31);
+    expect(send).not.toHaveBeenCalled();
+    pointer('pointerdown', 20, 30); key('Escape'); pointer('pointerup', 220, 130);
+    expect(send).not.toHaveBeenCalled();
+    expect(picker.isActive()).toBe(false);
+  });
+});

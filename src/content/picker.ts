@@ -39,6 +39,52 @@ export class Picker {
   private previousCursorPriority = '';
   private frame = 0;
   private blockHover = (event: Event) => { if (this.active && (this.isFrozen || this.capturing)) event.stopImmediatePropagation(); };
+  private dragStart: { x: number; y: number } | null = null;
+  private dragRect: CropRect | null = null;
+  private suppressClickUntil = 0;
+  private wheelTime = 0;
+  private selectionAnchor: Element | null = null;
+  private onPointerDown = (e: PointerEvent) => {
+    if (!this.active || this.capturing || !e.shiftKey || e.button !== 0) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    cancelAnimationFrame(this.frame); this.frame = 0;
+    this.dragStart = { x: e.clientX, y: e.clientY };
+    this.dragRect = null;
+    this.overlay.setFrozen(false);
+    this.overlay.hideToast();
+  };
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.active) return;
+    if (!this.dragStart) { if (this.isFrozen || this.capturing) e.stopImmediatePropagation(); return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    const a = this.dragStart;
+    this.dragRect = { x: Math.min(a.x, e.clientX), y: Math.min(a.y, e.clientY), width: Math.abs(e.clientX - a.x), height: Math.abs(e.clientY - a.y) };
+    this.overlay.showHighlight(this.dragRect, `Area ${Math.round(this.dragRect.width)} x ${Math.round(this.dragRect.height)} | Release to capture | Esc cancel`);
+  };
+  private onPointerUp = (e: PointerEvent) => {
+    if (!this.active || !this.dragStart) return;
+    this.onPointerMove(e);
+    e.preventDefault(); e.stopImmediatePropagation();
+    const rect = this.dragRect;
+    this.dragStart = null; this.dragRect = null;
+    this.suppressClickUntil = Date.now() + 500;
+    if (rect && rect.width >= 3 && rect.height >= 3) void this.captureRect(rect, 'region');
+    else {
+      if (this.currentElement) this.highlightElement(this.currentElement);
+      this.overlay.showToast('Hold Shift and drag a larger area to capture.', 'warn');
+    }
+  };
+  private onPointerCancel = () => { this.dragStart = null; this.dragRect = null; if (this.active && this.currentElement) this.highlightElement(this.currentElement); };
+  private onWheel = (e: WheelEvent) => {
+    if (!this.active || e.ctrlKey || e.altKey) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (this.capturing || this.dragStart || !e.deltaY) return;
+    if (Date.now() - this.wheelTime < 120) return;
+    this.wheelTime = Date.now();
+    cancelAnimationFrame(this.frame); this.frame = 0;
+    this.selectionAnchor = deepElementFromPoint(e.clientX, e.clientY) || this.currentElement;
+    this.selectRelative(e.deltaY < 0);
+  };
   private pointer = { x: 0, y: 0 };
   private isFrozen = false;
   private currentElement: Element | null = null;
@@ -76,7 +122,12 @@ export class Picker {
     this.currentElement = document.activeElement !== document.body ? document.activeElement : document.body?.firstElementChild;
     if (this.currentElement) this.highlightElement(this.currentElement);
 
-    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout', 'pointermove']) window.addEventListener(name, this.blockHover, true);
+    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout']) window.addEventListener(name, this.blockHover, true);
+    window.addEventListener('pointerdown', this.onPointerDown, true);
+    window.addEventListener('pointermove', this.onPointerMove, true);
+    window.addEventListener('pointerup', this.onPointerUp, true);
+    window.addEventListener('pointercancel', this.onPointerCancel, true);
+    window.addEventListener('wheel', this.onWheel, { capture: true, passive: false });
     window.addEventListener('mousemove', this.onMouseMove, true);
     window.addEventListener('click', this.onClick, true);
     window.addEventListener('keydown', this.onKeyDown, true);
@@ -86,7 +137,7 @@ export class Picker {
     window.addEventListener('beforeunload', this.onVisibilityOrUnload, true);
     window.addEventListener('pagehide', this.onVisibilityOrUnload, true);
 
-    this.overlay.showToast('Pick mode active: Click an element or press Esc to cancel', 'success', 2500);
+    this.overlay.showToast('Click an element | Scroll up: larger, down: smaller | Shift-drag: area | Esc cancel', 'success', 2500);
   }
 
   public stop() {
@@ -95,13 +146,19 @@ export class Picker {
     this.isFrozen = false;
     this.currentElement = null;
     this.childHistory = [];
+    this.dragStart = null; this.dragRect = null; this.selectionAnchor = null;
 
     document.documentElement.style.setProperty('cursor', this.previousCursor, this.previousCursorPriority);
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.overlay.hideToast();
 
-    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout', 'pointermove']) window.removeEventListener(name, this.blockHover, true);
+    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout']) window.removeEventListener(name, this.blockHover, true);
+    window.removeEventListener('pointerdown', this.onPointerDown, true);
+    window.removeEventListener('pointermove', this.onPointerMove, true);
+    window.removeEventListener('pointerup', this.onPointerUp, true);
+    window.removeEventListener('pointercancel', this.onPointerCancel, true);
+    window.removeEventListener('wheel', this.onWheel, true);
     window.removeEventListener('mousemove', this.onMouseMove, true);
     window.removeEventListener('click', this.onClick, true);
     window.removeEventListener('keydown', this.onKeyDown, true);
@@ -128,7 +185,7 @@ export class Picker {
   }
 
   private onMouseMove(e: MouseEvent) {
-    if (!this.active || this.capturing) return;
+    if (!this.active || this.capturing || this.dragStart) return;
     if (this.isFrozen) { e.stopImmediatePropagation(); return; }
     this.pointer = { x: e.clientX, y: e.clientY };
     if (this.frame) return;
@@ -136,7 +193,8 @@ export class Picker {
       this.frame = 0;
       if (!this.active || this.capturing || this.isFrozen) return;
       const el = deepElementFromPoint(this.pointer.x, this.pointer.y);
-      if (!el || el === this.currentElement) return;
+      if (!el || el === this.currentElement || el === this.selectionAnchor) return;
+      this.selectionAnchor = null;
       this.currentElement = el;
       this.childHistory = [];
       this.highlightElement(el);
@@ -146,7 +204,7 @@ export class Picker {
   private onKeyDown(e: KeyboardEvent) {
     if (!this.active) return;
 
-    if (e.key === 'Enter' && this.currentElement) {
+    if (e.key === 'Enter' && this.currentElement && !this.dragStart) {
       e.preventDefault(); e.stopImmediatePropagation();
       void this.onClick(new MouseEvent('click'));
       return;
@@ -159,7 +217,7 @@ export class Picker {
       return;
     }
 
-    if (e.key === 'f' || e.key === 'F') {
+    if (!this.dragStart && (e.key === 'f' || e.key === 'F')) {
       e.preventDefault();
       e.stopPropagation();
       this.isFrozen = !this.isFrozen;
@@ -167,42 +225,26 @@ export class Picker {
       return;
     }
 
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!this.currentElement) return;
-
-      const parent = this.currentElement.parentElement || (this.currentElement.getRootNode() instanceof ShadowRoot ? (this.currentElement.getRootNode() as ShadowRoot).host : null);
-      if (parent && parent !== document.documentElement) {
-        this.childHistory.push(this.currentElement);
-        this.currentElement = parent;
-        this.highlightElement(parent);
-      }
-      return;
-    }
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!this.currentElement) return;
-
-      let targetChild: Element | null = null;
-      if (this.childHistory.length > 0) {
-        targetChild = this.childHistory.pop() || null;
-      } else if (this.currentElement.firstElementChild) {
-        targetChild = this.currentElement.firstElementChild;
-      }
-
-      if (targetChild) {
-        this.currentElement = targetChild;
-        this.highlightElement(targetChild);
-      }
-      return;
+    if (this.dragStart || this.capturing) return;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      this.selectRelative(e.key === 'ArrowUp');
     }
   }
 
+  private selectRelative(parent: boolean) {
+    if (!this.currentElement) return;
+    let target: Element | null;
+    if (parent) {
+      target = this.currentElement.parentElement || (this.currentElement.getRootNode() instanceof ShadowRoot ? (this.currentElement.getRootNode() as ShadowRoot).host : null);
+      if (!target || target === document.documentElement) return;
+      this.childHistory.push(this.currentElement);
+    } else target = this.childHistory.pop() || this.currentElement.shadowRoot?.firstElementChild || this.currentElement.firstElementChild;
+    if (target && target.isConnected) { this.currentElement = target; this.highlightElement(target); }
+  }
+
   private onScrollOrResize() {
-    if (!this.active || !this.currentElement) return;
+    if (!this.active || this.capturing || this.dragStart || !this.currentElement) return;
     this.highlightElement(this.currentElement);
   }
 
@@ -219,7 +261,7 @@ export class Picker {
     const id = el.id ? `#${el.id}` : '';
     const firstClass = el.classList.length > 0 ? `.${el.classList[0]}` : '';
     const dimensions = `${Math.round(rawRect.width)} x ${Math.round(rawRect.height)}`;
-    const label = `<${tag}${id}${firstClass}>  ${dimensions} | Click / Enter | Up / Down | F lock | Esc`;
+    const label = `<${tag}${id}${firstClass}>  ${dimensions} | Click / Enter | Scroll: size | Shift-drag: area | F lock | Esc`;
 
     this.overlay.showHighlight(rect, label, this.isFrozen);
   }
@@ -231,7 +273,7 @@ export class Picker {
     e.stopPropagation();
     e.stopImmediatePropagation();
 
-    if (this.capturing) return;
+    if (this.capturing || this.dragStart || Date.now() < this.suppressClickUntil) return;
     const targetEl = this.currentElement || deepElementFromPoint(e.clientX, e.clientY);
     if (!targetEl || targetEl === document.documentElement) {
       return;
@@ -245,6 +287,12 @@ export class Picker {
       height: rawRect.height,
     };
 
+    if (!targetEl.isConnected) return;
+    await this.captureRect(cssRect, targetEl.tagName, targetEl);
+  }
+
+  private async captureRect(cssRect: CropRect, tagName: string, targetEl?: Element) {
+    if (!this.active || this.capturing) return;
     // Apply padding if configured
     const expandedRect = expandRectWithPadding(cssRect, this.settings.padding);
 
@@ -255,7 +303,7 @@ export class Picker {
 
     const { clampedRect, isPartial } = clampRectToViewport(expandedRect, viewport);
 
-    if (!clampedRect.width || !clampedRect.height || !targetEl.isConnected) {
+    if (!clampedRect.width || !clampedRect.height) {
       this.overlay.showToast('The selected element has no visible pixels. Choose another element.', 'warn');
       return;
     }
@@ -263,9 +311,9 @@ export class Picker {
     let feedback = '';
     let feedbackType: 'success' | 'warn' | 'error' = 'success';
     const meta: ElementMeta = {
-      tagName: targetEl.tagName,
-      id: targetEl.id,
-      className: targetEl.className && typeof targetEl.className === 'string' ? targetEl.className : '',
+      tagName,
+      id: targetEl?.id,
+      className: typeof targetEl?.className === 'string' ? targetEl.className : '',
       domain: window.location.hostname,
       pageTitle: document.title,
       pageUrl: window.location.href,
@@ -291,6 +339,7 @@ export class Picker {
     });
 
     try {
+      if (!this.active) return;
       // Send capture request to background service worker
       const response: CaptureResponsePayload = await chrome.runtime.sendMessage({
         type: 'CAPTURE_REQUEST',

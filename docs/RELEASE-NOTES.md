@@ -1,13 +1,11 @@
-ElementShot 1.0.1 completes the core element capture workflow and fixes release blockers in the initial implementation.
+ElementShot 1.1.0 adds flexible screenshot selection.
 
-- Native-resolution PNG capture using actual screenshot dimensions, including zoom below 100%.
-- Worker-compatible image encoding and complete overlay hiding before capture.
-- Click or Enter capture, parent/child traversal, selection locking, padding and continuous mode.
-- Independent clipboard and download outcomes, with clear failure feedback.
-- Safe Windows filenames, nested Downloads subfolders and `{n}` sequence token.
-- Real picker regression tests, loaded-extension browser checks and release automation.
-- Chromium and Firefox packages with separate permission and manifest handling.
+- Scroll up to expand to a parent container; scroll down to return to a smaller child selection.
+- Hold Shift and drag a custom area across unrelated elements; release to capture.
+- Live rectangle dimensions and on-screen control hints.
+- Reverse drags, tiny-drag protection, follow-up click suppression and Escape cancellation.
+- Existing native PNG, clipboard, Downloads, padding and continuous mode behavior retained.
 
-Install: download the Chrome archive, extract it, enable Developer mode in chrome://extensions or edge://extensions, choose Load unpacked and select the extracted folder. Firefox temporary loading uses about:debugging and the Firefox archive's manifest.json. Permanent Firefox installation requires a Mozilla-signed build.
+Install: extract the Chrome archive and use Load unpacked in chrome://extensions or edge://extensions. To upgrade an unpacked installation, replace the files in its existing folder, then click Reload on the extension card. Firefox temporary loading uses about:debugging and the Firefox package's manifest.json; permanent installation requires signing.
 
-Store publication and real-user acceptance checks remain separate from this source/package release. See docs/RELEASE.md and docs/QA.md.
+The wheel adjusts selection while pick mode is active. Exit with Esc to scroll the page normally. Captures remain limited to visible viewport pixels. Browser store publication is separate from this package release.

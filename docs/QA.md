@@ -32,3 +32,8 @@ Serve fixtures using `python -m http.server 8080` from the repository, then open
 9. Repeat core checks in latest Edge and Firefox 140+ with the matching package.
 
 F locks the selection and blocks some JavaScript hover events. It cannot freeze CSS hover, timers, animations, focus changes or every site's menus. Frames are captured as visible rectangular elements, not traversed. Closed shadow roots, DRM, viewport-only cropping and transforms/occlusion are documented platform limits.
+
+
+## Version 1.1.0 flexible selection
+
+45 local tests pass, including wheel traversal, browser zoom preservation, custom region geometry, reverse drags, tiny drags and Escape cancellation. The loaded browser test additionally exercises scroll expansion/shrinking without page scrolling and Shift-drag capture with PNG dimensions and click-suppression assertions. Release publication is gated on that test.
