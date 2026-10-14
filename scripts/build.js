@@ -102,8 +102,8 @@ async function buildExtension() {
     },
   });
 
-  // 4. Copy static assets: manifest.json, icons, test-pages
-  console.log('4. Copying manifest, icons, and test-pages...');
+  // 4. Copy production assets and distribution notices
+  console.log('4. Copying manifest, icons, and distribution notices...');
   fs.copyFileSync(
     path.resolve(rootDir, 'public/manifest.json'),
     path.resolve(distDir, 'manifest.json')
@@ -113,6 +113,9 @@ async function buildExtension() {
   if (fs.existsSync(iconsDir)) {
     fs.cpSync(iconsDir, path.resolve(distDir, 'icons'), { recursive: true });
   }
+
+  for (const file of ['LICENSE', 'THIRD-PARTY-NOTICES.txt']) fs.copyFileSync(path.join(rootDir, file), path.join(distDir, file));
+  for (const file of ['PRIVACY.md', 'TERMS.md']) fs.copyFileSync(path.join(rootDir, 'docs', file), path.join(distDir, file));
 
   console.log('Build complete! Unpacked extension ready at dist/');
 }

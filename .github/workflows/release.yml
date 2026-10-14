@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm audit --audit-level=moderate
       - run: npm run verify
       - uses: browser-actions/setup-chrome@v2
         id: chrome
@@ -40,4 +41,3 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" releases/*.zip --target "$GITHUB_SHA" --title "ElementShot $TAG" --notes-file docs/RELEASE-NOTES.md
-

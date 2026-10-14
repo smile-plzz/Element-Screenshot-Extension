@@ -87,7 +87,7 @@ try {
   const options = await browser.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
   await options.waitForSelector('#save-btn');
-  await options.click('#copyToClipboard'); await options.click('#saveToDisk'); await options.click('#save-btn');
+  await options.click('label:has(#copyToClipboard) .slider'); await options.click('label:has(#saveToDisk) .slider'); await options.click('#save-btn');
   await options.waitForFunction(() => document.getElementById('status-toast').textContent.includes('Enable at least one'));
   console.log('PASS: loaded extension, real service worker capture/crop, native-scale PNG clipboard pixels, download, freeze, Enter, cleanup, options validation.');
 } finally {
