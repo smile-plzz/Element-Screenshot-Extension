@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ElementShot Test Suite &amp; Fixtures</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    h1 { color: #0284c7; }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    a { color: #0284c7; font-weight: 600; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .kbd {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ElementShot Test Pages</h1>
+  <p>Use these test fixtures to verify ElementShot in Google Chrome and Microsoft Edge.</p>
+
+  <div class="card">
+    <h2>Verification Checklist</h2>
+    <ul>
+      <li>Press <span class="kbd">Alt+Shift+S</span> or click toolbar icon to enter pick mode.</li>
+      <li>Hover over elements to see highlight box and tag label.</li>
+      <li>Press <span class="kbd">F</span> to freeze hover state while inspecting.</li>
+      <li>Press <span class="kbd">&uarr;</span> and <span class="kbd">&darr;</span> to traverse parent/child hierarchy.</li>
+      <li>Click to capture: verify toast confirmation, clipboard paste in chat/editor, and file saved in <code>Downloads/ElementShots/</code>.</li>
+      <li>Press <span class="kbd">Esc</span> to cancel without capturing.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Test Scenarios</h2>
+    <ul>
+      <li><a href="components.html">1. Standard UI Components</a>: Cards, badges, buttons, forms, and responsive grids.</li>
+      <li><a href="long-page.html">2. Long Page &amp; Sticky Headers</a>: Sticky navigation, tall scroll elements, viewport boundary clipping.</li>
+      <li><a href="transforms.html">3. CSS Transforms</a>: Rotated elements, skewed banners, scaled cards, and CSS flex/grid.</li>
+      <li><a href="shadow-dom.html">4. Shadow DOM Elements</a>: Web components with open shadow roots (deep element inspection).</li>
+    </ul>
+  </div>
+</body>
+</html>

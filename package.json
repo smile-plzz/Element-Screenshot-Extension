@@ -1,0 +1,29 @@
+{
+  "name": "element-screenshot-extension",
+  "version": "1.0.0",
+  "description": "One-gesture element screenshot extension: hover, click, copy to clipboard and save.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "package": "node scripts/package.js",
+    "watch": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "screenshot",
+    "browser-extension",
+    "manifest-v3",
+    "chrome-extension"
+  ],
+  "author": "Ismail Hossain",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.312",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.5"
+  }
+}

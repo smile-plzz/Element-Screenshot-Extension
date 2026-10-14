@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ElementShot Test: CSS Transforms</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 40px;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 60px;
+      margin-top: 50px;
+    }
+    .transformed {
+      width: 220px;
+      height: 140px;
+      background: white;
+      border: 2px solid #0284c7;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .rotated {
+      transform: rotate(6deg);
+    }
+    .scaled {
+      transform: scale(1.15);
+    }
+    .skewed {
+      transform: skew(-4deg, 2deg);
+    }
+  </style>
+</head>
+<body>
+  <h1>CSS Transform Tests</h1>
+  <p>Verify that getBoundingClientRect() properly outlines transformed and rotated elements.</p>
+
+  <div class="container">
+    <div id="rotated-element" class="transformed rotated">
+      <strong>Rotated 6 deg</strong>
+      <p style="font-size: 12px; margin-top: 6px;">Check highlight bounding rect alignment</p>
+    </div>
+
+    <div id="scaled-element" class="transformed scaled">
+      <strong>Scaled 1.15x</strong>
+      <p style="font-size: 12px; margin-top: 6px;">Check scale and boundary calculation</p>
+    </div>
+
+    <div id="skewed-element" class="transformed skewed">
+      <strong>Skewed Element</strong>
+      <p style="font-size: 12px; margin-top: 6px;">Check skew handling</p>
+    </div>
+  </div>
+</body>
+</html>

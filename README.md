@@ -386,3 +386,46 @@ Order of work inside each milestone: types and interfaces, tests, implementation
 - **Scroll-and-stitch:** capturing a tall element in several slices and joining them into one image.
 - **Offscreen document:** an extension page created without a visible window, used for canvas, audio or clipboard work that a service worker cannot do.
 - **`activeTab`:** a permission that grants temporary access to the current tab after the user invokes the extension.
+
+---
+
+## 17. Developer Guide: Build, Test and Run
+
+### 17.1 Prerequisites
+- Node.js v18+ (tested on Node v22)
+- npm v9+
+
+### 17.2 Installation
+```bash
+npm install
+```
+
+### 17.3 Running Tests
+```bash
+npm test
+```
+Runs the Vitest unit test suite covering rect calculation, viewport clamping, DPR scaling, filename generation, and settings storage.
+
+### 17.4 Building the Extension
+```bash
+npm run build
+```
+Compiles and bundles the content script, background service worker, options page, offscreen document, icons, and test pages into `dist/`.
+
+### 17.5 Packaging for Release
+```bash
+npm run package
+```
+Generates unpacked builds for Chromium (`dist/`) and Firefox (`dist-firefox/`), plus ready-to-upload zip archives in `releases/`.
+
+### 17.6 Loading in Chromium (Google Chrome, Microsoft Edge, Brave)
+1. Open `chrome://extensions` or `edge://extensions`.
+2. Toggle on **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `dist/` directory.
+4. Navigate to any web page or test fixture in `dist/test-pages/index.html`.
+5. Press `Alt+Shift+S` or click the ElementShot toolbar icon to begin capturing.
+
+### 17.7 Loading in Firefox
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on...**.
+3. Select `dist-firefox/manifest.json`.
