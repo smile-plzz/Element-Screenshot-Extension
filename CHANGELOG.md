@@ -17,5 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Options page for customizing output subfolder, filename template, padding, and clipboard/download behaviors.
 - Fallback offscreen document for canvas processing and reliable clipboard writing.
 - Comprehensive test pages and Vitest test suite covering rect math, filename sanitization, options storage, and URL security validation.
-- Visual badge indicator and descriptive tooltip alert when activated on restricted system or extension store pages (FR-4, Scenario S7).
 - Cross-browser packaging script creating ready-to-upload zip archives for Chrome, Edge, and Firefox.
+- MIT License declaration and copyright notices.
+- Comprehensive privacy policy, terms of use, and support guides in docs/.
+- Store listing metadata and permission justifications in store/store-listing.md for Chrome Web Store and Firefox AMO.
+- Automated Chromium browser E2E test suite running on live web components via puppeteer-core.
+- Continuous integration and automated packaging workflow via GitHub Actions (.github/workflows/ci.yml).
+- Tab switch and navigation lifecycle cleanup via visibilitychange, beforeunload, and chrome.tabs.onActivated listeners.

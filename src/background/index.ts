@@ -87,6 +87,19 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+// Clean up pick mode on previous tab when switching tabs
+let lastActiveTabId: number | null = null;
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  if (lastActiveTabId && lastActiveTabId !== activeInfo.tabId) {
+    try {
+      await chrome.tabs.sendMessage(lastActiveTabId, { type: 'STOP_PICK' });
+    } catch {
+      // Ignore tabs without content script or closed tabs
+    }
+  }
+  lastActiveTabId = activeInfo.tabId;
+});
+
 // Handle capture requests and background messaging
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
   if (message.type === 'CAPTURE_REQUEST') {

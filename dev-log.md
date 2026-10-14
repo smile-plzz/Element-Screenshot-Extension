@@ -47,3 +47,32 @@
   4. Expanded test suite to 22 passing tests covering URL filtering, element label generation, rect math, filename templates, and settings.
   5. Configured GitHub CLI authentication (gh auth setup-git) and successfully pushed commits to origin main.
   6. Verified production builds: dist/ (Chrome/Edge MV3) and dist-firefox/ (Firefox MV3) compiled and archived in releases/.
+
+## 2026-10-14 22:55:00+06:00 - End-to-End Shipping & Store Compliance Completion
+
+- Status: Goal Complete
+- Shipping Readiness Tasks Completed:
+  1. Created MIT LICENSE file (Ismail Hossain, 2026).
+  2. Prepared full legal and compliance documentation in docs/:
+     - docs/PRIVACY.md: Strict zero-telemetry, local processing policy, permission declarations.
+     - docs/TERMS.md: Terms of use and liability limitations.
+     - docs/SUPPORT.md: Issue reporting and shortcut configuration guide.
+  3. Prepared store listing package in store/store-listing.md with:
+     - Store title, short description, and feature breakdown.
+     - Detailed Chrome Web Store / Firefox AMO permission justifications.
+     - Single-purpose policy declaration.
+  4. Added automated browser E2E test suite in scripts/e2e-browser-test.js using puppeteer-core on real Chromium:
+     - Verified content script injection and Shadow DOM isolation.
+     - Verified hover tracking on live DOM components.
+     - Verified freeze mode toggle (F) and visual indicator.
+     - Verified Esc cancellation and DOM cleanup.
+  5. Configured continuous integration via .github/workflows/ci.yml:
+     - Automatic typechecking, unit testing, bundling, packaging, and artifact uploads.
+  6. Enhanced picker lifecycle cleanup:
+     - Added visibilitychange, beforeunload, and pagehide listeners to prevent stuck overlays.
+     - Added chrome.tabs.onActivated listener in background service worker to clean up pick mode on tab switch.
+  7. Verification Summary:
+     - 25 Vitest unit tests passing across 6 test suites.
+     - 5 automated Chromium browser E2E steps passing.
+     - 0 TypeScript compiler errors (tsc --noEmit).
+     - Cross-browser production packages generated in releases/.

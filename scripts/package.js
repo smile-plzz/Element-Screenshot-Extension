@@ -52,28 +52,29 @@ function packageExtensions() {
 
   console.log('Firefox unpacked build created at dist-firefox/');
 
-  // 2. Create zip archives using PowerShell Compress-Archive
+  // 2. Create zip archives
   const chromeZip = path.join(releaseDir, 'elementshot-chrome-v1.0.0.zip');
-  const firefoxZip = path.join(releaseDir, 'elementshot-firefox-v1.0.0.0.zip');
+  const firefoxZip = path.join(releaseDir, 'elementshot-firefox-v1.0.0.zip');
 
-  if (fs.existsSync(chromeZip)) fs.unlinkSync(chromeZip);
-  if (fs.existsSync(firefoxZip)) fs.unlinkSync(firefoxZip);
-
-  try {
-    execSync(
-      `powershell -Command "Compress-Archive -Path '${distDir}\\*' -DestinationPath '${chromeZip}' -Force"`,
-      { stdio: 'inherit' }
-    );
-    console.log(`Created Chrome/Edge package: ${chromeZip}`);
-
-    execSync(
-      `powershell -Command "Compress-Archive -Path '${firefoxDir}\\*' -DestinationPath '${firefoxZip}' -Force"`,
-      { stdio: 'inherit' }
-    );
-    console.log(`Created Firefox package: ${firefoxZip}`);
-  } catch (err) {
-    console.warn('Zip archiving notice:', err);
+  function zipFolder(sourceDir, zipPath) {
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+    try {
+      if (process.platform === 'win32') {
+        execSync(
+          `powershell -Command "Compress-Archive -Path '${sourceDir}\\*' -DestinationPath '${zipPath}' -Force"`,
+          { stdio: 'ignore' }
+        );
+      } else {
+        execSync(`cd "${sourceDir}" && zip -rq "${zipPath}" ./*`, { stdio: 'ignore' });
+      }
+      console.log(`Created archive: ${zipPath}`);
+    } catch (err) {
+      console.warn(`Could not create archive for ${zipPath}:`, err);
+    }
   }
+
+  zipFolder(distDir, chromeZip);
+  zipFolder(firefoxDir, firefoxZip);
 
   console.log('Packaging complete!');
 }

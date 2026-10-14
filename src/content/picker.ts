@@ -50,6 +50,7 @@ export class Picker {
     this.onClick = this.onClick.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onScrollOrResize = this.onScrollOrResize.bind(this);
+    this.onVisibilityOrUnload = this.onVisibilityOrUnload.bind(this);
   }
 
   public updateSettings(newSettings: ExtensionSettings) {
@@ -70,6 +71,9 @@ export class Picker {
     window.addEventListener('keydown', this.onKeyDown, true);
     window.addEventListener('scroll', this.onScrollOrResize, true);
     window.addEventListener('resize', this.onScrollOrResize, true);
+    document.addEventListener('visibilitychange', this.onVisibilityOrUnload, true);
+    window.addEventListener('beforeunload', this.onVisibilityOrUnload, true);
+    window.addEventListener('pagehide', this.onVisibilityOrUnload, true);
 
     this.overlay.showToast('Pick mode active: Click an element or press Esc to cancel', 'success', 2500);
   }
@@ -88,12 +92,21 @@ export class Picker {
     window.removeEventListener('keydown', this.onKeyDown, true);
     window.removeEventListener('scroll', this.onScrollOrResize, true);
     window.removeEventListener('resize', this.onScrollOrResize, true);
+    document.removeEventListener('visibilitychange', this.onVisibilityOrUnload, true);
+    window.removeEventListener('beforeunload', this.onVisibilityOrUnload, true);
+    window.removeEventListener('pagehide', this.onVisibilityOrUnload, true);
 
     this.overlay.hideHighlight();
     this.overlay.setFrozen(false);
 
     if (this.onDeactivate) {
       this.onDeactivate();
+    }
+  }
+
+  private onVisibilityOrUnload() {
+    if (this.active) {
+      this.stop();
     }
   }
 

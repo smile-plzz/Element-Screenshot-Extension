@@ -9,6 +9,7 @@
     "watch": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "node scripts/e2e-browser-test.js",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@types/chrome": "^0.0.312",
     "@types/node": "^22.13.1",
+    "puppeteer-core": "^25.14.0",
     "typescript": "^5.7.3",
     "vite": "^6.2.0",
     "vitest": "^3.0.5"
