@@ -26,9 +26,8 @@ const server = http.createServer((_request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
-  browser = await puppeteer.launch({ executablePath, enableExtensions: true, headless: process.env.HEADED !== '1', args: [
+  browser = await puppeteer.launch({ executablePath, enableExtensions: [extension], pipe: true, headless: process.env.HEADED !== '1', args: [
     '--no-sandbox', '--enable-unsafe-extension-debugging',
-    `--disable-extensions-except=${extension}`, `--load-extension=${extension}`,
   ] });
   const target = await browser.waitForTarget(target => target.type() === 'service_worker' && target.url().endsWith('/background.js'));
   const worker = await target.worker();
