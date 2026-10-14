@@ -26,7 +26,7 @@ const server = http.createServer((_request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
-  browser = await puppeteer.launch({ executablePath, headless: process.env.HEADED !== '1', args: [
+  browser = await puppeteer.launch({ executablePath, enableExtensions: true, headless: process.env.HEADED !== '1', args: [
     '--no-sandbox', '--enable-unsafe-extension-debugging',
     `--disable-extensions-except=${extension}`, `--load-extension=${extension}`,
   ] });

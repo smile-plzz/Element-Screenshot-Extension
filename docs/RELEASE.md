@@ -4,7 +4,7 @@
 
 Use Node 22+, `npm ci`, then `npm run verify`. Archives appear in `releases/` with the version from the manifest. The Chrome archive also serves Edge. Firefox packaging removes Chromium's offscreen permission, uses an event background script and declares no data collection. Current target: Chrome/Edge 116+ and Firefox 140+.
 
-Run the loaded-extension test using `CHROME_PATH=/path/to/chrome npm run test:e2e`. CI runs it with Chrome for Testing. Push a version tag matching package.json and manifest.json, for example `v1.0.1`. The release workflow verifies, tests and publishes archives through GitHub Releases only if all checks pass. A failed browser check blocks publication. Use the workflow logs to investigate; never bypass the release gate.
+Run the loaded-extension test using `CHROME_PATH=/path/to/chrome npm run test:e2e`. CI runs it with Chrome for Testing. A version change on main (package.json) or a version tag, for example `v1.0.1`, runs the release workflow. It verifies, tests and publishes archives through GitHub Releases only if all checks pass, creating the matching tag when needed. Existing releases are preserved. A failed browser check blocks publication. Use the workflow logs to investigate; never bypass the release gate.
 
 Use semantic versions for subsequent changes. Build outputs are ignored by git and reproduced by the workflow. Do not ship test fixtures or node_modules.
 
