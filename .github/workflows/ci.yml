@@ -1,54 +1,30 @@
-name: CI Build & Test
-
+name: Verify and Package
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+permissions:
+  contents: read
 jobs:
-  build-and-test:
+  verify:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck TypeScript
-        run: npm run typecheck
-
-      - name: Run unit test suite
-        run: npm test
-
-      - name: Build extension bundles
-        run: npm run build
-
-      - name: Package extension archives
-        run: npm run package
-
-      - name: Upload Chromium build artifact
-        uses: actions/upload-artifact@v4
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
         with:
-          name: elementshot-chrome
-          path: dist/
-
-      - name: Upload Firefox build artifact
-        uses: actions/upload-artifact@v4
+          chrome-version: stable
+      - run: npm run test:e2e
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+      - uses: actions/upload-artifact@v4
         with:
-          name: elementshot-firefox
-          path: dist-firefox/
-
-      - name: Upload release zip archives
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-zips
+          name: elementshot-packages
           path: releases/*.zip

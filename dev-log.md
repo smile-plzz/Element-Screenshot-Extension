@@ -76,3 +76,8 @@
      - 5 automated Chromium browser E2E steps passing.
      - 0 TypeScript compiler errors (tsc --noEmit).
      - Cross-browser production packages generated in releases/.
+
+
+## 2026-10-15: 1.0.1 release hardening
+
+Reviewed against the README. Fixed worker encoding and complete UI hiding, tested the actual Picker rather than copied label logic, hardened destinations and messages, and added gated GitHub release automation. Local typecheck, 40 tests and packaging passed. Browser downloads failed in this environment; runtime and store acceptance status is recorded honestly in docs/QA.md.

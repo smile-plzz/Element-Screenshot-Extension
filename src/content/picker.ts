@@ -34,6 +34,12 @@ export function deepElementFromPoint(x: number, y: number): Element | null {
 
 export class Picker {
   private active = false;
+  private capturing = false;
+  private previousCursor = '';
+  private previousCursorPriority = '';
+  private frame = 0;
+  private blockHover = (event: Event) => { if (this.active && (this.isFrozen || this.capturing)) event.stopImmediatePropagation(); };
+  private pointer = { x: 0, y: 0 };
   private isFrozen = false;
   private currentElement: Element | null = null;
   private childHistory: Element[] = [];
@@ -58,14 +64,19 @@ export class Picker {
   }
 
   public start() {
-    if (this.active) return;
+    if (this.active || this.capturing) return;
     this.active = true;
     this.isFrozen = false;
     this.currentElement = null;
     this.childHistory = [];
 
-    document.documentElement.style.cursor = 'crosshair';
+    this.previousCursor = document.documentElement.style.cursor;
+    this.previousCursorPriority = document.documentElement.style.getPropertyPriority('cursor');
+    document.documentElement.style.setProperty('cursor', 'crosshair', 'important');
+    this.currentElement = document.activeElement !== document.body ? document.activeElement : document.body?.firstElementChild;
+    if (this.currentElement) this.highlightElement(this.currentElement);
 
+    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout', 'pointermove']) window.addEventListener(name, this.blockHover, true);
     window.addEventListener('mousemove', this.onMouseMove, true);
     window.addEventListener('click', this.onClick, true);
     window.addEventListener('keydown', this.onKeyDown, true);
@@ -85,8 +96,12 @@ export class Picker {
     this.currentElement = null;
     this.childHistory = [];
 
-    document.documentElement.style.cursor = '';
+    document.documentElement.style.setProperty('cursor', this.previousCursor, this.previousCursorPriority);
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.overlay.hideToast();
 
+    for (const name of ['pointerover', 'pointerout', 'mouseover', 'mouseout', 'pointermove']) window.removeEventListener(name, this.blockHover, true);
     window.removeEventListener('mousemove', this.onMouseMove, true);
     window.removeEventListener('click', this.onClick, true);
     window.removeEventListener('keydown', this.onKeyDown, true);
@@ -105,9 +120,7 @@ export class Picker {
   }
 
   private onVisibilityOrUnload() {
-    if (this.active) {
-      this.stop();
-    }
+    if (this.active) this.stop();
   }
 
   public isActive(): boolean {
@@ -115,24 +128,29 @@ export class Picker {
   }
 
   private onMouseMove(e: MouseEvent) {
-    if (!this.active || this.isFrozen) return;
-
-    const el = deepElementFromPoint(e.clientX, e.clientY);
-    if (!el || el === this.currentElement) return;
-
-    // Filter out html and body root elements unless explicitly clicked
-    if (el === document.documentElement || el === document.body) {
-      return;
-    }
-
-    this.currentElement = el;
-    this.childHistory = [];
-    this.highlightElement(el);
+    if (!this.active || this.capturing) return;
+    if (this.isFrozen) { e.stopImmediatePropagation(); return; }
+    this.pointer = { x: e.clientX, y: e.clientY };
+    if (this.frame) return;
+    this.frame = requestAnimationFrame(() => {
+      this.frame = 0;
+      if (!this.active || this.capturing || this.isFrozen) return;
+      const el = deepElementFromPoint(this.pointer.x, this.pointer.y);
+      if (!el || el === this.currentElement) return;
+      this.currentElement = el;
+      this.childHistory = [];
+      this.highlightElement(el);
+    });
   }
 
   private onKeyDown(e: KeyboardEvent) {
     if (!this.active) return;
 
+    if (e.key === 'Enter' && this.currentElement) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      void this.onClick(new MouseEvent('click'));
+      return;
+    }
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -154,7 +172,7 @@ export class Picker {
       e.stopPropagation();
       if (!this.currentElement) return;
 
-      const parent = this.currentElement.parentElement;
+      const parent = this.currentElement.parentElement || (this.currentElement.getRootNode() instanceof ShadowRoot ? (this.currentElement.getRootNode() as ShadowRoot).host : null);
       if (parent && parent !== document.documentElement) {
         this.childHistory.push(this.currentElement);
         this.currentElement = parent;
@@ -201,7 +219,7 @@ export class Picker {
     const id = el.id ? `#${el.id}` : '';
     const firstClass = el.classList.length > 0 ? `.${el.classList[0]}` : '';
     const dimensions = `${Math.round(rawRect.width)} x ${Math.round(rawRect.height)}`;
-    const label = `<span class="tag">&lt;${tag}${id}${firstClass}&gt;</span><span class="dim">${dimensions}</span>`;
+    const label = `<${tag}${id}${firstClass}>  ${dimensions} | Click / Enter | Up / Down | F lock | Esc`;
 
     this.overlay.showHighlight(rect, label, this.isFrozen);
   }
@@ -213,6 +231,7 @@ export class Picker {
     e.stopPropagation();
     e.stopImmediatePropagation();
 
+    if (this.capturing) return;
     const targetEl = this.currentElement || deepElementFromPoint(e.clientX, e.clientY);
     if (!targetEl || targetEl === document.documentElement) {
       return;
@@ -236,6 +255,13 @@ export class Picker {
 
     const { clampedRect, isPartial } = clampRectToViewport(expandedRect, viewport);
 
+    if (!clampedRect.width || !clampedRect.height || !targetEl.isConnected) {
+      this.overlay.showToast('The selected element has no visible pixels. Choose another element.', 'warn');
+      return;
+    }
+    this.capturing = true;
+    let feedback = '';
+    let feedbackType: 'success' | 'warn' | 'error' = 'success';
     const meta: ElementMeta = {
       tagName: targetEl.tagName,
       id: targetEl.id,
@@ -254,7 +280,9 @@ export class Picker {
     };
 
     // Hide highlight UI before capture and wait two animation frames
-    this.overlay.hideHighlight();
+    this.overlay.setHidden(true);
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
 
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
@@ -269,19 +297,14 @@ export class Picker {
         payload,
       });
 
+      if (!this.active) return;
+      this.overlay.setHidden(false);
       if (!response || !response.success) {
-        this.overlay.showToast(`Capture failed: ${response?.error || 'Unknown error'}`, 'error', 4000);
+        feedback = `Capture failed: ${response?.error || 'Unknown error'}`;
+        feedbackType = 'error';
       } else {
-        let copied = response.copied;
-
-        // If background indicates dataUrl needs clipboard write in content script
-        if (this.settings.copyToClipboard && !copied && response.filename) {
-          // Attempt direct clipboard write in content script if we have the data
-          copied = false;
-        }
-
         // Generate descriptive toast feedback
-        let feedback = '';
+        feedback = '';
         if (response.saved && response.copied) {
           feedback = `Copied and saved: ${response.filename}`;
         } else if (response.copied) {
@@ -289,22 +312,31 @@ export class Picker {
         } else if (response.saved) {
           feedback = `Saved to ${response.filename}`;
         } else {
-          feedback = 'Element captured successfully';
+          feedback = 'No output delivered. Check clipboard and download permissions.';
         }
 
+        if (this.settings.copyToClipboard && !response.copied) feedback += ' | Clipboard failed';
+        if (this.settings.saveToDisk && !response.saved) feedback += ' | Save failed';
+        const incomplete = (this.settings.copyToClipboard && !response.copied) || (this.settings.saveToDisk && !response.saved);
         if (response.isPartial) {
           feedback += ' (Partial: extends outside viewport)';
-          this.overlay.showToast(feedback, 'warn', 3500);
+          feedbackType = 'warn';
         } else {
-          this.overlay.showToast(feedback, 'success', 3000);
+          feedbackType = incomplete ? 'warn' : 'success';
         }
       }
     } catch (err) {
       console.error('ElementShot: Capture communication error:', err);
-      this.overlay.showToast('Capture failed due to extension error', 'error', 4000);
+      this.overlay.setHidden(false);
+      feedback = 'Capture failed due to extension error';
+      feedbackType = 'error';
     } finally {
-      if (!this.settings.stayInPickMode) {
-        this.stop();
+      this.capturing = false;
+      this.overlay.setHidden(false);
+      if (this.active) {
+        if (!this.settings.stayInPickMode) this.stop();
+        else if (this.currentElement) this.highlightElement(this.currentElement);
+        if (feedback) this.overlay.showToast(feedback, feedbackType, 4000);
       }
     }
   }

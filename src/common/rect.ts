@@ -56,7 +56,7 @@ export function scaleRectForDpr(
   dpr: number,
   imageBounds: { width: number; height: number }
 ): CropRect {
-  const safeDpr = Math.max(1, dpr || 1);
+  const safeDpr = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
 
   // Scaled coordinates
   const rawX = Math.round(rect.x * safeDpr);
@@ -65,8 +65,8 @@ export function scaleRectForDpr(
   const rawH = Math.round(rect.height * safeDpr);
 
   // Ensure coordinates stay strictly within image bounds
-  const x = Math.max(0, Math.min(rawX, imageBounds.width));
-  const y = Math.max(0, Math.min(rawY, imageBounds.height));
+  const x = Math.max(0, Math.min(rawX, Math.max(0, imageBounds.width - 1)));
+  const y = Math.max(0, Math.min(rawY, Math.max(0, imageBounds.height - 1)));
   const width = Math.max(1, Math.min(rawW, imageBounds.width - x));
   const height = Math.max(1, Math.min(rawH, imageBounds.height - y));
 

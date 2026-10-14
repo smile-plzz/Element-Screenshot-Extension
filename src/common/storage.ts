@@ -1,5 +1,18 @@
 import { ExtensionSettings, DEFAULT_SETTINGS } from './types';
 
+export function normalizeSettings(items: Partial<ExtensionSettings>): ExtensionSettings {
+  const result = { ...DEFAULT_SETTINGS };
+  for (const key of ['saveToDisk', 'copyToClipboard', 'stayInPickMode', 'includeTimestamp'] as const) {
+    if (typeof items[key] === 'boolean') result[key] = items[key];
+  }
+  for (const key of ['subfolder', 'filenameTemplate'] as const) {
+    if (typeof items[key] === 'string') result[key] = items[key].slice(0, 200);
+  }
+  if (typeof items.padding === 'number' && Number.isFinite(items.padding)) result.padding = Math.max(0, Math.min(50, Math.round(items.padding)));
+  if (!result.copyToClipboard && !result.saveToDisk) result.saveToDisk = true;
+  return result;
+}
+
 /**
  * Loads extension settings from chrome.storage.sync with fallback to local.
  */
@@ -16,14 +29,14 @@ export async function loadSettings(): Promise<ExtensionSettings> {
         // Fallback to local if sync encountered an error
         if (chrome.storage.local) {
           chrome.storage.local.get(DEFAULT_SETTINGS, (localItems) => {
-            resolve({ ...DEFAULT_SETTINGS, ...localItems });
+            resolve(normalizeSettings(localItems));
           });
           return;
         }
         resolve({ ...DEFAULT_SETTINGS });
         return;
       }
-      resolve({ ...DEFAULT_SETTINGS, ...items });
+      resolve(normalizeSettings(items));
     });
   });
 }

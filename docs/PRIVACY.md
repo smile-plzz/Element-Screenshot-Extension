@@ -12,7 +12,7 @@ ElementShot is designed from the ground up with strict privacy principles. Your 
 - All screenshots captured with ElementShot are created and processed entirely on your local device.
 - ElementShot contains no external network endpoints, no remote APIs, and no telemetry services.
 - Screenshots are saved directly to your local computer's Downloads directory and/or copied to your local system clipboard.
-- No image data, DOM content, URL history, or metadata is ever transmitted over the network.
+- The extension never uploads image data, DOM content, URL history or capture metadata. Browser-managed settings sync may synchronize preferences through the browser provider.
 
 ## 2. No Analytics or Telemetry
 - ElementShot does not track user behavior, page visits, click counts, or usage metrics.
@@ -34,7 +34,7 @@ ElementShot requests only the minimum permissions necessary to function:
 - `downloads`: Required to save cropped screenshot PNG files into your local Downloads directory.
 - `storage`: Required to save your extension preferences across browser sessions.
 - `clipboardWrite`: Required to write the captured screenshot PNG image to your system clipboard for immediate pasting.
-- `offscreen`: Used in modern Manifest V3 environments to provide a reliable fallback for image manipulation and clipboard writing.
+- `offscreen` (Chromium only): Used in modern Manifest V3 environments to provide a reliable fallback for image manipulation and clipboard writing.
 
 ## 5. Third-Party Services
 ElementShot connects to zero third-party services, APIs, or external servers.

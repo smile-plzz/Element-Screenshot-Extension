@@ -1,16 +1,17 @@
 {
   "name": "element-screenshot-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-gesture element screenshot extension: hover, click, copy to clipboard and save.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.js",
     "package": "node scripts/package.js",
-    "watch": "vite build --watch",
+    "watch": "node scripts/build.js --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node scripts/e2e-browser-test.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm test && npm run build && npm run package"
   },
   "keywords": [
     "screenshot",
@@ -23,9 +24,13 @@
   "devDependencies": {
     "@types/chrome": "^0.0.312",
     "@types/node": "^22.13.1",
+    "happy-dom": "^20.8.4",
     "puppeteer-core": "^25.14.0",
     "typescript": "^5.7.3",
     "vite": "^6.2.0",
     "vitest": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

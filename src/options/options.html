@@ -31,7 +31,7 @@
           <h2 class="section-title">Output Actions</h2>
           <div class="form-row checkbox-row">
             <label class="toggle-switch">
-              <input type="checkbox" id="copyToClipboard">
+              <input type="checkbox" id="copyToClipboard" aria-label="Copy to clipboard">
               <span class="slider"></span>
             </label>
             <div class="label-group">
@@ -42,7 +42,7 @@
 
           <div class="form-row checkbox-row">
             <label class="toggle-switch">
-              <input type="checkbox" id="saveToDisk">
+              <input type="checkbox" id="saveToDisk" aria-label="Save to disk">
               <span class="slider"></span>
             </label>
             <div class="label-group">
@@ -64,7 +64,7 @@
           <div class="form-row">
             <label for="filenameTemplate" class="field-label">Filename Template</label>
             <input type="text" id="filenameTemplate" class="text-input" placeholder="{domain}_{tag}_{date}_{time}">
-            <span class="field-help">Available tokens: <code>{domain}</code>, <code>{tag}</code>, <code>{class}</code>, <code>{id}</code>, <code>{title}</code>, <code>{date}</code>, <code>{time}</code>.</span>
+            <span class="field-help">Available tokens: <code>{domain}</code>, <code>{tag}</code>, <code>{class}</code>, <code>{id}</code>, <code>{title}</code>, <code>{date}</code>, <code>{time}</code>, <code>{n}</code>.</span>
             <div class="preview-box">
               <span class="preview-label">Preview:</span>
               <code id="filename-preview">example.com_div_2026-10-14_20-00-00.png</code>
@@ -86,7 +86,7 @@
 
           <div class="form-row checkbox-row">
             <label class="toggle-switch">
-              <input type="checkbox" id="stayInPickMode">
+              <input type="checkbox" id="stayInPickMode" aria-label="Continuous pick mode">
               <span class="slider"></span>
             </label>
             <div class="label-group">
@@ -105,12 +105,16 @@
               <kbd class="shortcut-keys">Alt + Shift + S</kbd>
             </div>
             <div class="shortcut-item">
-              <span class="shortcut-name">Freeze / Unfreeze Hover</span>
+              <span class="shortcut-name">Lock / Unlock Selection</span>
               <kbd class="shortcut-keys">F</kbd>
             </div>
             <div class="shortcut-item">
               <span class="shortcut-name">Select Parent / Child</span>
               <kbd class="shortcut-keys">&uarr; / &darr;</kbd>
+            </div>
+            <div class="shortcut-item">
+              <span class="shortcut-name">Capture Selection</span>
+              <kbd class="shortcut-keys">Enter</kbd>
             </div>
             <div class="shortcut-item">
               <span class="shortcut-name">Cancel Pick Mode</span>
@@ -128,7 +132,7 @@
       </form>
     </main>
 
-    <div id="status-toast" class="toast-notice"></div>
+    <div id="status-toast" role="status" aria-live="polite" class="toast-notice"></div>
   </div>
 
   <script type="module" src="./options.ts"></script>

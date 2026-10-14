@@ -1,3 +1,4 @@
+declare const browser: { clipboard?: { setImageData: (bytes: ArrayBuffer, type: 'png') => Promise<void> } } | undefined;
 import { cropScreenshot } from './crop';
 import { generateFilename, sanitizeSubfolder } from '../common/filename';
 import { loadSettings } from '../common/storage';
@@ -12,21 +13,23 @@ import { isRestrictedUrl } from '../common/urls';
 /**
  * Ensures an offscreen document is active for clipboard operations.
  */
+let offscreenCreation: Promise<void> | undefined;
 async function ensureOffscreenDocument(): Promise<void> {
-  if (!chrome.offscreen) return;
-  try {
-    const hasDoc = await chrome.offscreen.hasDocument?.();
-    if (!hasDoc) {
-      await chrome.offscreen.createDocument({
-        url: 'offscreen.html',
-        reasons: ['CLIPBOARD'],
+  if (!chrome.offscreen) throw new Error('Offscreen clipboard unavailable');
+  if (!offscreenCreation) {
+    offscreenCreation = (async () => {
+      if (!await chrome.offscreen.hasDocument()) await chrome.offscreen.createDocument({
+        url: 'offscreen.html', reasons: [chrome.offscreen.Reason.CLIPBOARD],
         justification: 'Copy captured screenshot to system clipboard',
       });
-    }
-  } catch (err) {
-    console.warn('ElementShot: Offscreen document creation notice:', err);
+    })().finally(() => { offscreenCreation = undefined; });
   }
+  await offscreenCreation;
 }
+
+let captureBusy = false;
+let lastCaptureTime = 0;
+let sequence = 0;
 
 /**
  * Injects or toggles pick mode on the specified tab.
@@ -57,6 +60,8 @@ async function togglePickModeOnTab(tab: chrome.tabs.Tab): Promise<void> {
   }
 
   try {
+    lastActiveTabId = tab.id;
+    await chrome.action.setBadgeText({ tabId: tab.id, text: '' });
     // Attempt sending message if content script is already injected
     await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_PICK_MODE' });
   } catch {
@@ -68,6 +73,8 @@ async function togglePickModeOnTab(tab: chrome.tabs.Tab): Promise<void> {
       });
     } catch (err) {
       console.error('ElementShot: Failed to inject content script:', err);
+      await chrome.action.setBadgeText({ tabId: tab.id, text: '!' });
+      await chrome.action.setTitle({ tabId: tab.id, title: 'Cannot capture this page. For local files, enable Allow access to file URLs in extension settings.' });
     }
   }
 }
@@ -107,10 +114,22 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
     const tabId = sender.tab?.id;
     const windowId = sender.tab?.windowId;
 
+    if (captureBusy) { sendResponse({ success: false, saved: false, copied: false, error: 'A capture is already running. Please try again.' }); return; }
+    captureBusy = true;
     (async () => {
       try {
+        if (sender.id !== chrome.runtime.id || tabId === undefined || windowId === undefined || sender.frameId !== 0) throw new Error('Invalid capture sender');
+        const [activeTab] = await chrome.tabs.query({ active: true, windowId });
+        if (activeTab?.id !== tabId) throw new Error('Tab changed. Return to the selected page and try again.');
+        if (!payload?.rect || !payload.viewport || ![payload.rect.x, payload.rect.y, payload.rect.width, payload.rect.height, payload.viewport.width, payload.viewport.height].every(Number.isFinite) || payload.rect.width <= 0 || payload.rect.height <= 0 || payload.viewport.width <= 0 || payload.viewport.height <= 0) throw new Error('Invalid capture dimensions');
         const settings = await loadSettings();
+        if (!settings.copyToClipboard && !settings.saveToDisk) throw new Error('Enable clipboard or saving in extension settings');
 
+        const wait = Math.max(0, 600 - (Date.now() - lastCaptureTime));
+        if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+        const [stillActive] = await chrome.tabs.query({ active: true, windowId });
+        if (stillActive?.id !== tabId) throw new Error('Tab changed before capture');
+        lastCaptureTime = Date.now();
         // Step 1: Capture the visible tab viewport
         const viewportDataUrl =
           windowId !== undefined
@@ -121,7 +140,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
         const { croppedDataUrl } = await cropScreenshot(
           viewportDataUrl,
           payload.rect,
-          payload.dpr
+          payload.dpr,
+          payload.viewport
         );
 
         let saved = false;
@@ -131,7 +151,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
         // Step 3: Handle saving to disk if enabled
         if (settings.saveToDisk) {
           const folder = sanitizeSubfolder(settings.subfolder);
-          finalFilename = generateFilename(settings.filenameTemplate, payload.meta);
+          finalFilename = generateFilename(settings.filenameTemplate, payload.meta, new Date(), ++sequence);
           const fullPath = `${folder}/${finalFilename}`;
 
           try {
@@ -164,6 +184,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
             }
           }
 
+          if (!copied && typeof browser !== 'undefined' && browser.clipboard?.setImageData) {
+            try {
+              const bytes = await (await fetch(croppedDataUrl)).arrayBuffer();
+              await browser.clipboard.setImageData(bytes, 'png');
+              copied = true;
+            } catch (err) { console.warn('ElementShot: Firefox clipboard failed', err); }
+          }
           // Attempt 2: Offscreen document fallback if direct write did not succeed
           if (!copied) {
             try {
@@ -182,7 +209,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
         }
 
         const responsePayload: CaptureResponsePayload = {
-          success: true,
+          success: saved || copied,
+          error: !saved && !copied ? 'Clipboard and saving failed. Check browser permissions.' : undefined,
           saved,
           copied,
           filename: finalFilename,
@@ -199,7 +227,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
           copied: false,
           error: errMessage,
         });
-      }
+      } finally { captureBusy = false; }
     })();
 
     return true; // Keep message channel open for async response

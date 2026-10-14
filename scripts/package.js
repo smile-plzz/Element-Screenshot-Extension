@@ -33,14 +33,16 @@ function packageExtensions() {
   const chromeManifestPath = path.join(distDir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(chromeManifestPath, 'utf-8'));
 
+  delete manifest.minimum_chrome_version;
+  manifest.permissions = manifest.permissions.filter(permission => permission !== 'offscreen');
   manifest.background = {
     scripts: ['background.js'],
-    type: 'module',
   };
   manifest.browser_specific_settings = {
     gecko: {
       id: 'elementshot@smile-plzz.github.io',
-      strict_min_version: '109.0',
+      strict_min_version: '140.0',
+      data_collection_permissions: { required: ['none'] },
     },
   };
 
@@ -53,8 +55,9 @@ function packageExtensions() {
   console.log('Firefox unpacked build created at dist-firefox/');
 
   // 2. Create zip archives
-  const chromeZip = path.join(releaseDir, 'elementshot-chrome-v1.0.0.zip');
-  const firefoxZip = path.join(releaseDir, 'elementshot-firefox-v1.0.0.zip');
+  const version = manifest.version;
+  const chromeZip = path.join(releaseDir, `elementshot-chrome-v${version}.zip`);
+  const firefoxZip = path.join(releaseDir, `elementshot-firefox-v${version}.zip`);
 
   function zipFolder(sourceDir, zipPath) {
     if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
@@ -69,7 +72,7 @@ function packageExtensions() {
       }
       console.log(`Created archive: ${zipPath}`);
     } catch (err) {
-      console.warn(`Could not create archive for ${zipPath}:`, err);
+      throw new Error(`Could not create archive for ${zipPath}`, { cause: err });
     }
   }
 

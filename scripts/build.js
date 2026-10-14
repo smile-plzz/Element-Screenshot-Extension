@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(rootDir, 'dist');
+const watching = process.argv.includes('--watch');
 
 async function buildExtension() {
   console.log('Building ElementShot extension...');
@@ -25,6 +26,7 @@ async function buildExtension() {
     build: {
       outDir: distDir,
       emptyOutDir: false,
+      watch: watching ? {} : null,
       rollupOptions: {
         input: {
           options: path.resolve(rootDir, 'src/options/options.html'),
@@ -64,6 +66,7 @@ async function buildExtension() {
     build: {
       outDir: distDir,
       emptyOutDir: false,
+      watch: watching ? {} : null,
       lib: {
         entry: path.resolve(rootDir, 'src/content/index.ts'),
         name: 'ElementShotContent',
@@ -85,6 +88,7 @@ async function buildExtension() {
     build: {
       outDir: distDir,
       emptyOutDir: false,
+      watch: watching ? {} : null,
       lib: {
         entry: path.resolve(rootDir, 'src/background/index.ts'),
         formats: ['es'],
@@ -108,11 +112,6 @@ async function buildExtension() {
   const iconsDir = path.resolve(rootDir, 'public/icons');
   if (fs.existsSync(iconsDir)) {
     fs.cpSync(iconsDir, path.resolve(distDir, 'icons'), { recursive: true });
-  }
-
-  const testPagesDir = path.resolve(rootDir, 'test-pages');
-  if (fs.existsSync(testPagesDir)) {
-    fs.cpSync(testPagesDir, path.resolve(distDir, 'test-pages'), { recursive: true });
   }
 
   console.log('Build complete! Unpacked extension ready at dist/');

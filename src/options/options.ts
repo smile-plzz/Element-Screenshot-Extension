@@ -73,7 +73,11 @@ async function init() {
       includeTimestamp: true,
     };
 
-    await saveSettings(newSettings);
+    if (!newSettings.copyToClipboard && !newSettings.saveToDisk) {
+      showToast('Enable at least one output: clipboard or saving.'); return;
+    }
+    try { await saveSettings(newSettings); }
+    catch { showToast('Could not save settings. Please try again.'); return; }
     renderSettings(newSettings);
     showToast('Settings saved successfully');
   });
@@ -86,7 +90,9 @@ async function init() {
 
   openShortcutsBtn.addEventListener('click', () => {
     if (chrome && chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      if (navigator.userAgent.includes('Firefox')) {
+        showToast('Open Add-ons Manager, then the gear menu, then Manage Extension Shortcuts.');
+      } else chrome.tabs.create({ url: navigator.userAgent.includes('Edg/') ? 'edge://extensions/shortcuts' : 'chrome://extensions/shortcuts' });
     }
   });
 }

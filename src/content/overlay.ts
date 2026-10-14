@@ -182,7 +182,7 @@ export class OverlayManager {
     }
 
     this.badgeEl.style.display = 'block';
-    this.badgeEl.innerHTML = label;
+    this.badgeEl.textContent = label;
 
     // Position badge above element if space allows, otherwise just below top border
     const badgeHeight = 24;
@@ -229,13 +229,26 @@ export class OverlayManager {
         : `<svg class="toast-icon" viewBox="0 0 20 20" fill="#ef4444"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>`;
 
     this.toastEl.className = `toast ${type} visible`;
-    this.toastEl.innerHTML = `${iconSvg}<span>${message}</span>`;
+    this.toastEl.innerHTML = iconSvg;
+    const text = document.createElement('span');
+    text.textContent = message;
+    this.toastEl.appendChild(text);
+    this.toastEl.onclick = () => this.hideToast();
 
     this.toastTimeout = window.setTimeout(() => {
       if (this.toastEl) {
         this.toastEl.classList.remove('visible');
       }
     }, duration);
+  }
+
+  public hideToast() {
+    if (this.toastTimeout) window.clearTimeout(this.toastTimeout);
+    if (this.toastEl) this.toastEl.classList.remove('visible');
+  }
+
+  public setHidden(hidden: boolean) {
+    if (this.host) this.host.style.setProperty('visibility', hidden ? 'hidden' : 'visible', 'important');
   }
 
   public destroy() {

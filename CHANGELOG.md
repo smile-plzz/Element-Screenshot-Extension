@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-10-15
+
+See [release notes](docs/RELEASE-NOTES.md). Fixed worker PNG encoding, overlay contamination, duplicate captures, zoom-out scaling, unsafe filename/path handling, inaccurate feedback and Firefox manifest adaptation. Added Enter capture, actual picker regression coverage, sequence filenames, validated settings, reproducible packaging and gated release automation.
+
+
 All notable changes to the ElementShot project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

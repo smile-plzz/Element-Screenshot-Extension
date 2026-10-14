@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ElementShot - Element Screenshot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-gesture element screenshot extension: hover, click, copy to clipboard and save.",
   "permissions": [
     "activeTab",
@@ -42,5 +42,9 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "minimum_chrome_version": "116",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' data:;"
   }
 }

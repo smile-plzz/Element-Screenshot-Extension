@@ -1,22 +1,17 @@
 import { CropRect } from '../common/types';
+import { ViewportSize } from '../common/types';
 import { scaleRectForDpr } from '../common/rect';
 
 /**
  * Converts a Blob to a base64 Data URL using FileReader.
  */
 export async function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result);
-      } else {
-        reject(new Error('Failed to convert blob to data URL'));
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  }
+  return `data:${blob.type || 'image/png'};base64,${btoa(binary)}`;
 }
 
 /**
@@ -26,7 +21,8 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
 export async function cropScreenshot(
   viewportDataUrl: string,
   rect: CropRect,
-  dpr: number
+  dpr: number,
+  viewport?: ViewportSize
 ): Promise<{ croppedDataUrl: string; croppedBlob: Blob }> {
   // Fetch dataUrl into a blob
   const response = await fetch(viewportDataUrl);
@@ -41,7 +37,15 @@ export async function cropScreenshot(
   };
 
   // Scale and clamp crop rectangle against full image bounds
-  const scaledRect = scaleRectForDpr(rect, dpr, imageBounds);
+  const scale = viewport ? bitmap.width / viewport.width : dpr;
+  const scaleY = viewport ? bitmap.height / viewport.height : dpr;
+  const scaledRect = scaleRectForDpr(
+    { ...rect, y: rect.y * scaleY / scale, height: rect.height * scaleY / scale }, scale, imageBounds
+  );
+  if (!scaledRect.width || !scaledRect.height) {
+    bitmap.close();
+    throw new Error('The selected element has no visible pixels');
+  }
 
   // Render cropped slice using OffscreenCanvas
   const canvas = new OffscreenCanvas(scaledRect.width, scaledRect.height);
@@ -62,6 +66,7 @@ export async function cropScreenshot(
     scaledRect.height
   );
 
+  bitmap.close();
   const croppedBlob = await canvas.convertToBlob({ type: 'image/png' });
   const croppedDataUrl = await blobToDataUrl(croppedBlob);
 

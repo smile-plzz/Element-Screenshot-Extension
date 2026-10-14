@@ -1,148 +1,90 @@
 import puppeteer from 'puppeteer-core';
-import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import assert from 'node:assert/strict';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const distDir = path.resolve(rootDir, 'dist');
-
-const chromePaths = [
+const root = path.resolve(import.meta.dirname, '..');
+const executablePath = process.env.CHROME_PATH || [
+  '/usr/bin/chromium', '/usr/bin/google-chrome',
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-];
-
-const chromeExecutable = chromePaths.find((p) => fs.existsSync(p));
-
-if (!chromeExecutable) {
-  console.error('No compatible Chromium browser found on machine.');
-  process.exit(1);
-}
-
-console.log(`Starting E2E Browser Test using: ${chromeExecutable}`);
-console.log(`Loading extension from: ${distDir}`);
-
-async function runE2ETests() {
-  const browser = await puppeteer.launch({
-    executablePath: chromeExecutable,
-    headless: false, // Chrome extensions in Manifest V3 run in headed mode or headless=new
-    args: [
-      `--disable-extensions-except=${distDir}`,
-      `--load-extension=${distDir}`,
-      '--no-sandbox',
-      '--disable-gpu',
-      '--window-size=1280,800',
-    ],
-  });
-
-  try {
-    const page = await browser.newPage();
-    const testPageUrl = `file://${path.resolve(distDir, 'test-pages/components.html').replace(/\\/g, '/')}`;
-    console.log(`Navigating to test fixture: ${testPageUrl}`);
-    await page.goto(testPageUrl, { waitUntil: 'load' });
-
-    // 1. Inject content script
-    console.log('Test 1: Injecting content script into test page...');
-    const contentScriptCode = fs.readFileSync(path.join(distDir, 'content.js'), 'utf-8');
-    await page.evaluate((code) => {
-      const script = document.createElement('script');
-      script.textContent = code;
-      document.documentElement.appendChild(script);
-    }, contentScriptCode);
-
-    // Wait for host element to mount in shadow DOM
-    await page.waitForSelector('#elementshot-host', { timeout: 3000 });
-    console.log('✓ ElementShot host attached to DOM.');
-
-    // 2. Check shadow DOM elements
-    console.log('Test 2: Verifying shadow DOM isolation and internal nodes...');
-    const hasShadowElements = await page.evaluate(() => {
-      const host = document.getElementById('elementshot-host');
-      if (!host || !host.shadowRoot) return false;
-      const box = host.shadowRoot.querySelector('.box');
-      const badge = host.shadowRoot.querySelector('.badge');
-      const toast = host.shadowRoot.querySelector('.toast');
-      return !!(box && badge && toast);
-    });
-
-    if (!hasShadowElements) {
-      throw new Error('Shadow DOM nodes (.box, .badge, .toast) missing!');
-    }
-    console.log('✓ Shadow DOM overlay components verified.');
-
-    // 3. Hover element and verify highlight tracking
-    console.log('Test 3: Testing hover highlight tracking on #card-alpha...');
-    const cardRect = await page.evaluate(() => {
-      const card = document.getElementById('card-alpha');
-      return card ? card.getBoundingClientRect().toJSON() : null;
-    });
-
-    // Move mouse over center of card-alpha
-    await page.mouse.move(cardRect.x + cardRect.width / 2, cardRect.y + cardRect.height / 2);
-    await new Promise((r) => setTimeout(r, 100)); // wait for animation frame throttle
-
-    const highlightBoxStyle = await page.evaluate(() => {
-      const host = document.getElementById('elementshot-host');
-      const box = host.shadowRoot.querySelector('.box');
-      return {
-        display: box.style.display,
-        width: box.style.width,
-        height: box.style.height,
-        left: box.style.left,
-        top: box.style.top,
-      };
-    });
-
-    console.log(`✓ Highlight box rendered: ${JSON.stringify(highlightBoxStyle)}`);
-    if (highlightBoxStyle.display !== 'block') {
-      throw new Error('Highlight box did not activate on hover!');
-    }
-
-    // 4. Test Freeze state
-    console.log('Test 4: Testing freeze state toggle (Press F)...');
-    await page.keyboard.press('KeyF');
-    await new Promise((r) => setTimeout(r, 100));
-
-    const isFrozen = await page.evaluate(() => {
-      const host = document.getElementById('elementshot-host');
-      const box = host.shadowRoot.querySelector('.box');
-      const indicator = host.shadowRoot.querySelector('.freeze-indicator');
-      return box.classList.contains('frozen') && indicator.style.display === 'block';
-    });
-
-    if (!isFrozen) {
-      throw new Error('Freeze state was not activated when pressing F!');
-    }
-    console.log('✓ Freeze state correctly set (.box.frozen & indicator visible).');
-
-    // 5. Test Escape cancellation and clean teardown
-    console.log('Test 5: Testing Esc cancellation and teardown...');
-    await page.keyboard.press('Escape');
-    await new Promise((r) => setTimeout(r, 100));
-
-    const isCleanedUp = await page.evaluate(() => {
-      const host = document.getElementById('elementshot-host');
-      const box = host.shadowRoot.querySelector('.box');
-      const cursor = document.documentElement.style.cursor;
-      return box.style.display === 'none' && cursor === '';
-    });
-
-    if (!isCleanedUp) {
-      throw new Error('Pick mode did not clean up properly upon Escape!');
-    }
-    console.log('✓ Pick mode cleanly cancelled, overlay hidden, cursor reset.');
-
-    console.log('\n=======================================');
-    console.log('All E2E Browser Tests Passed Successfully!');
-    console.log('=======================================\n');
-  } finally {
-    await browser.close();
-  }
-}
-
-runE2ETests().catch((err) => {
-  console.error('E2E Browser Test Failed:', err);
-  process.exit(1);
+].find(file => fs.existsSync(file));
+if (!executablePath) throw new Error('Set CHROME_PATH to a Chrome for Testing or Chromium executable.');
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'elementshot-e2e-'));
+const extension = path.join(temp, 'extension');
+fs.cpSync(path.join(root, 'dist'), extension, { recursive: true });
+const productionManifest = JSON.parse(fs.readFileSync(path.join(extension, 'manifest.json')));
+assert.equal(productionManifest.host_permissions, undefined);
+// Test-only host access allows deterministic driver injection. Shipped manifest stays activeTab-only.
+fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({ ...productionManifest, host_permissions: ['<all_urls>'] }));
+const server = http.createServer((_request, response) => {
+  response.setHeader('Content-Type', 'text/html');
+  response.end(`<!doctype html><style>body{margin:0}#card{position:absolute;left:100px;top:100px;width:240px;height:160px;background:rgb(34,197,94)}#child{margin:20px;width:80px;height:40px;background:white}</style><div id="card"><button id="child">Capture me</button></div><script>window.clicks=0;document.addEventListener('click',()=>window.clicks++);</script>`);
 });
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+let browser;
+try {
+  browser = await puppeteer.launch({ executablePath, headless: process.env.HEADED !== '1', args: [
+    '--no-sandbox', '--enable-unsafe-extension-debugging',
+    `--disable-extensions-except=${extension}`, `--load-extension=${extension}`,
+  ] });
+  const target = await browser.waitForTarget(target => target.type() === 'service_worker' && target.url().endsWith('/background.js'));
+  const worker = await target.worker();
+  const extensionId = target.url().split('/')[2];
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const page = await browser.newPage();
+  await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write']);
+  await page.setViewport({ width: 1000, height: 700, deviceScaleFactor: 2 });
+  await page.goto(origin);
+  await page.bringToFront();
+  await worker.evaluate(async () => {
+    await chrome.storage.sync.set({ saveToDisk: true, copyToClipboard: true, padding: 0, stayInPickMode: false });
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+  });
+  await page.waitForSelector('#elementshot-host');
+  await page.mouse.move(105, 105);
+  await page.waitForFunction(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.badge').textContent.includes('div#card'));
+  await page.keyboard.press('f');
+  await page.mouse.move(900, 600);
+  assert.equal(await page.evaluate(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.box').classList.contains('frozen')), true);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => {
+    const toast = document.getElementById('elementshot-host').shadowRoot.querySelector('.toast');
+    return toast.classList.contains('visible') && toast.textContent.includes('Copied and saved');
+  }, { timeout: 15000 });
+  assert.equal(await page.evaluate(() => window.clicks), 0);
+  const image = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    const bitmap = await createImageBitmap(await item.getType('image/png'));
+    const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
+    const pixel = [...ctx.getImageData(0, 0, 1, 1).data];
+    return { width: bitmap.width, height: bitmap.height, pixel };
+  });
+  assert.equal(image.width, 480); assert.equal(image.height, 320);
+  assert.deepEqual(image.pixel, [34, 197, 94, 255]); // No highlight border in captured pixels.
+  await worker.evaluate(async () => {
+    const downloads = await chrome.downloads.search({ limit: 1, orderBy: ['-startTime'] });
+    if (!downloads[0]?.filename.endsWith('.png')) throw new Error('PNG download missing');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.tabs.sendMessage(tab.id, { type: 'START_PICK' });
+  });
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.documentElement.style.cursor), '');
+  assert.equal(await page.evaluate(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.box').style.display), 'none');
+  await page.mouse.click(110, 110);
+  assert.equal(await page.evaluate(() => window.clicks), 1);
+  const options = await browser.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  await options.waitForSelector('#save-btn');
+  await options.click('#copyToClipboard'); await options.click('#saveToDisk'); await options.click('#save-btn');
+  await options.waitForFunction(() => document.getElementById('status-toast').textContent.includes('Enable at least one'));
+  console.log('PASS: loaded extension, real service worker capture/crop, 2x PNG clipboard pixels, download, freeze, Enter, cleanup, options validation.');
+} finally {
+  if (browser) await browser.close();
+  await new Promise(resolve => server.close(resolve));
+  fs.rmSync(temp, { recursive: true, force: true });
+}

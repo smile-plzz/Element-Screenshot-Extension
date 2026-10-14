@@ -11,6 +11,9 @@ export function sanitizeFilenamePart(part: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
+    .replace(/^[.]+|[. ]+$/g, '')
+    .replace(/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?=\.|$)/i, '_$1')
+    .slice(0, 160)
     .trim();
 }
 
@@ -19,11 +22,9 @@ export function sanitizeFilenamePart(part: string): string {
  */
 export function sanitizeSubfolder(subfolder: string): string {
   if (!subfolder) return 'ElementShots';
-  const clean = subfolder
-    .replace(/\.\./g, '')
-    .replace(/[<>:"|?*\x00-\x1F]/g, '')
-    .replace(/^[/\\]+|[/\\]+$/g, '')
-    .trim();
+  const clean = subfolder.replace(/\\/g, '/').split('/')
+    .filter(part => part !== '.' && part !== '..')
+    .map(sanitizeFilenamePart).filter(Boolean).join('/');
   return clean || 'ElementShots';
 }
 
@@ -53,7 +54,8 @@ export function formatTime(date: Date): string {
 export function generateFilename(
   template: string,
   meta: ElementMeta,
-  date: Date = new Date()
+  date: Date = new Date(),
+  sequence = 1
 ): string {
   const domainPart = sanitizeFilenamePart(meta.domain || 'page').toLowerCase();
   const tagPart = sanitizeFilenamePart((meta.tagName || 'element').toLowerCase());
@@ -72,7 +74,8 @@ export function generateFilename(
     .replace(/\{id\}/g, idPart || 'noid')
     .replace(/\{title\}/g, titlePart || 'untitled')
     .replace(/\{date\}/g, datePart)
-    .replace(/\{time\}/g, timePart);
+    .replace(/\{time\}/g, timePart)
+    .replace(/\{n\}/g, String(sequence));
 
   const sanitized = sanitizeFilenamePart(raw) || `elementshot-${datePart}-${timePart}`;
   return `${sanitized}.png`;

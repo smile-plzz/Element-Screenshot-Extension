@@ -1,9 +1,41 @@
-# Element Screenshot Extension (working title: ElementShot): Project Plan
+# ElementShot
+
+Click a component, get the screenshot. A local-only browser extension that captures the visible pixels of a selected element as a PNG, copies it and saves it to Downloads.
+
+**Version 1.0.1:** source and browser packages are prepared. Store publication and manual browser/site acceptance remain separate steps, tracked in [QA](docs/QA.md) and [Release guide](docs/RELEASE.md).
+
+## Install and use
+
+1. Download a package from [GitHub Releases](https://github.com/smile-plzz/Element-Screenshot-Extension/releases), or build with `npm ci && npm run verify` on Node 22+.
+2. Extract the Chrome package. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted folder (or `dist/` for a local build).
+3. Open an ordinary web page, click the pinned toolbar icon or press **Alt+Shift+S**, hover a component and click or press **Enter**.
+4. Paste the PNG into your editor. Files go to **Downloads/ElementShots/**. Right-click the toolbar icon and choose **Options** to change destinations, padding, filenames or continuous mode.
+
+**Controls:** Up selects parent; Down returns to child; F locks selection; Esc cancels. Captures include only visible viewport pixels. Partial results are labeled. Clipboard and save outcomes are reported separately. F does not freeze all page behavior.
+
+**Filename tokens:** `{domain}`, `{date}`, `{time}`, `{tag}`, `{class}`, `{id}`, `{title}`, `{n}`. The sequence is session-scoped and may restart when the background worker restarts. Duplicate downloads are uniquified by the browser.
+
+**Firefox:** build with `npm run verify`, then load `dist-firefox/manifest.json` through `about:debugging`. This is a compatibility package; permanent installation requires Mozilla signing. Use Firefox 140+. Chrome/Edge require 116+.
+
+No accounts, analytics, history or remote code. Only settings use browser storage; browser sync can synchronize settings through the browser provider. Screenshots stay in your clipboard and Downloads. See [Privacy](docs/PRIVACY.md), [Terms](docs/TERMS.md) and [Support](docs/SUPPORT.md).
+
+## Development
+
+- `npm run verify`: typecheck, test, build, package.
+- `npm run watch`: rebuild production entry points as files change; reload the extension afterwards.
+- `CHROME_PATH=/path/to/chrome npm run test:e2e`: loaded-extension browser test.
+- Fixtures stay in `test-pages/`; serve them over localhost. They are excluded from release archives.
+
+The original implementation specification below remains the source of product scope. Planning milestones and target acceptance checks describe intent, not proof of store launch or browser verification.
+
+---
+
+# Original product specification
 
 A browser extension that turns "screenshot a part of a web page" into one gesture: hover over a component, click it, and the cropped image is saved to a folder and copied to the clipboard, ready to paste.
 
 - Owner: Ismail
-- Document status: v1.0, planning
+- Document status: original v1.0 specification, preserved for scope; current release status above
 - Date: 2026-10-14
 - Intended readers: the owner, and any AI coding assistant or developer implementing the extension
 
@@ -392,7 +424,7 @@ Order of work inside each milestone: types and interfaces, tests, implementation
 ## 17. Developer Guide: Build, Test and Run
 
 ### 17.1 Prerequisites
-- Node.js v18+ (tested on Node v22)
+- Node.js v22+
 - npm v9+
 
 ### 17.2 Installation
@@ -410,7 +442,7 @@ Runs the Vitest unit test suite covering rect calculation, viewport clamping, DP
 ```bash
 npm run build
 ```
-Compiles and bundles the content script, background service worker, options page, offscreen document, icons, and test pages into `dist/`.
+Compiles and bundles the content script, background service worker, options page, offscreen document and icons into `dist/`.
 
 ### 17.5 Packaging for Release
 ```bash
@@ -422,7 +454,7 @@ Generates unpacked builds for Chromium (`dist/`) and Firefox (`dist-firefox/`), 
 1. Open `chrome://extensions` or `edge://extensions`.
 2. Toggle on **Developer mode** in the top-right corner.
 3. Click **Load unpacked** and select the `dist/` directory.
-4. Navigate to any web page or test fixture in `dist/test-pages/index.html`.
+4. Navigate to any web page or test fixture served from `test-pages/` over localhost.
 5. Press `Alt+Shift+S` or click the ElementShot toolbar icon to begin capturing.
 
 ### 17.7 Loading in Firefox
