@@ -37,3 +37,5 @@ F locks the selection and blocks some JavaScript hover events. It cannot freeze 
 ## Version 1.1.0 flexible selection
 
 45 local tests pass, including wheel traversal, browser zoom preservation, custom region geometry, reverse drags, tiny drags and Escape cancellation. The loaded browser test additionally exercises scroll expansion/shrinking without page scrolling and Shift-drag capture with PNG dimensions and click-suppression assertions. Release publication is gated on that test.
+
+Version 1.1.0 passed the [release browser checks](https://github.com/smile-plzz/Element-Screenshot-Extension/actions/runs/38635569123), including native PNG capture, scroll expansion/shrinking, region dimensions, clipboard, downloads and page-click suppression. Packages are published at https://github.com/smile-plzz/Element-Screenshot-Extension/releases/tag/v1.1.0.

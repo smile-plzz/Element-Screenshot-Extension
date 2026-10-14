@@ -86,3 +86,8 @@ Reviewed against the README. Fixed worker encoding and complete UI hiding, teste
 ## 2026-10-15: verified package release
 
 ElementShot v1.0.1 published through the gated release workflow. Both CI and release checks passed, including the loaded-extension browser flow with a native 480 x 320 PNG, clipboard and download. Dependency audit reports zero vulnerabilities. MIT and third-party notices are included in both archives. Source is on main. Store submission, manual Edge/Firefox testing, ten-site acceptance and owner usage remain explicitly pending in docs/QA.md.
+
+
+## 2026-10-15: flexible selection release 1.1.0
+
+Added wheel parent/child selection and Shift-drag area capture. 45 tests, typecheck, audit, packages and the actual loaded-Chrome workflow passed. Release v1.1.0 published after verification. User upgrade: replace unpacked files and reload the extension.
