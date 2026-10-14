@@ -40,3 +40,4 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" releases/*.zip --target "$GITHUB_SHA" --title "ElementShot $TAG" --notes-file docs/RELEASE-NOTES.md
+

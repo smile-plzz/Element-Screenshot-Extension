@@ -27,7 +27,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
   browser = await puppeteer.launch({ executablePath, enableExtensions: [extension], pipe: true, headless: process.env.HEADED !== '1', args: [
-    '--no-sandbox', '--enable-unsafe-extension-debugging',
+    '--no-sandbox', '--enable-unsafe-extension-debugging', '--force-device-scale-factor=2',
   ] });
   const target = await browser.waitForTarget(target => target.type() === 'service_worker' && target.url().endsWith('/background.js'));
   const worker = await target.worker();
@@ -38,6 +38,13 @@ try {
   await page.setViewport({ width: 1000, height: 700, deviceScaleFactor: 2 });
   await page.goto(origin);
   await page.bringToFront();
+  const baseline = await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  });
+  const baselineBytes = Buffer.from(baseline.split(',')[1], 'base64');
+  const expectedWidth = Math.round(240 * baselineBytes.readUInt32BE(16) / 1000);
+  const expectedHeight = Math.round(160 * baselineBytes.readUInt32BE(20) / 700);
   await worker.evaluate(async () => {
     await chrome.storage.sync.set({ saveToDisk: true, copyToClipboard: true, padding: 0, stayInPickMode: false });
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -63,7 +70,8 @@ try {
     const pixel = [...ctx.getImageData(0, 0, 1, 1).data];
     return { width: bitmap.width, height: bitmap.height, pixel };
   });
-  assert.equal(image.width, 480); assert.equal(image.height, 320);
+  assert.equal(image.width, expectedWidth); assert.equal(image.height, expectedHeight);
+  console.log(`Native screenshot crop verified: ${image.width} x ${image.height}`);
   assert.deepEqual(image.pixel, [34, 197, 94, 255]); // No highlight border in captured pixels.
   await worker.evaluate(async () => {
     const downloads = await chrome.downloads.search({ limit: 1, orderBy: ['-startTime'] });
@@ -81,7 +89,7 @@ try {
   await options.waitForSelector('#save-btn');
   await options.click('#copyToClipboard'); await options.click('#saveToDisk'); await options.click('#save-btn');
   await options.waitForFunction(() => document.getElementById('status-toast').textContent.includes('Enable at least one'));
-  console.log('PASS: loaded extension, real service worker capture/crop, 2x PNG clipboard pixels, download, freeze, Enter, cleanup, options validation.');
+  console.log('PASS: loaded extension, real service worker capture/crop, native-scale PNG clipboard pixels, download, freeze, Enter, cleanup, options validation.');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));
