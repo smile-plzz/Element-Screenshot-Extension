@@ -42,6 +42,8 @@ try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     return chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
   });
+  // The baseline also consumes captureVisibleTab rate budget.
+  await new Promise(resolve => setTimeout(resolve, 650));
   const baselineBytes = Buffer.from(baseline.split(',')[1], 'base64');
   const expectedWidth = Math.round(240 * baselineBytes.readUInt32BE(16) / 1000);
   const expectedHeight = Math.round(160 * baselineBytes.readUInt32BE(20) / 700);
@@ -103,7 +105,10 @@ try {
   await page.waitForFunction(() => {
     const toast = document.getElementById('elementshot-host').shadowRoot.querySelector('.toast');
     return toast.classList.contains('visible') && toast.textContent.includes('Copied and saved') && toast.textContent.includes('_region_');
-  }, { timeout: 15000 });
+  }, { timeout: 15000 }).catch(async error => {
+    console.error('Region capture feedback:', await page.evaluate(() => document.getElementById('elementshot-host').shadowRoot.querySelector('.toast').textContent));
+    throw error;
+  });
   const area = await page.evaluate(async () => {
     const [item] = await navigator.clipboard.read();
     const bitmap = await createImageBitmap(await item.getType('image/png'));
