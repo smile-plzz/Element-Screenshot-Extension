@@ -16,4 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable filename templates with tokens: {domain}, {date}, {time}, {tag}, {class}, {title}.
 - Options page for customizing output subfolder, filename template, padding, and clipboard/download behaviors.
 - Fallback offscreen document for canvas processing and reliable clipboard writing.
-- Comprehensive test pages and Vitest test suite covering rect math, filename sanitization, and options storage.
+- Comprehensive test pages and Vitest test suite covering rect math, filename sanitization, options storage, and URL security validation.
+- Visual badge indicator and descriptive tooltip alert when activated on restricted system or extension store pages (FR-4, Scenario S7).
+- Cross-browser packaging script creating ready-to-upload zip archives for Chrome, Edge, and Firefox.

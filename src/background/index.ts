@@ -7,22 +7,7 @@ import {
   ExtensionMessage,
 } from '../common/types';
 
-/**
- * Checks if a tab URL is restricted from extension script injection.
- */
-function isRestrictedUrl(url?: string): boolean {
-  if (!url) return true;
-  return (
-    url.startsWith('chrome://') ||
-    url.startsWith('chrome-extension://') ||
-    url.startsWith('edge://') ||
-    url.startsWith('about:') ||
-    url.startsWith('view-source:') ||
-    url.includes('chrome.google.com/webstore') ||
-    url.includes('chromewebstore.google.com') ||
-    url.includes('addons.mozilla.org')
-  );
-}
+import { isRestrictedUrl } from '../common/urls';
 
 /**
  * Ensures an offscreen document is active for clipboard operations.
@@ -51,6 +36,23 @@ async function togglePickModeOnTab(tab: chrome.tabs.Tab): Promise<void> {
 
   if (isRestrictedUrl(tab.url)) {
     console.warn('ElementShot: Cannot run on restricted system pages.');
+    if (chrome.action?.setBadgeText) {
+      chrome.action.setBadgeText({ tabId: tab.id, text: '!' });
+      chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: '#ef4444' });
+      chrome.action.setTitle({
+        tabId: tab.id,
+        title: 'ElementShot cannot run on restricted system pages (browser settings, store, etc.)',
+      });
+      setTimeout(() => {
+        if (tab.id) {
+          chrome.action.setBadgeText({ tabId: tab.id, text: '' });
+          chrome.action.setTitle({
+            tabId: tab.id,
+            title: 'ElementShot (Alt+Shift+S)',
+          });
+        }
+      }, 3000);
+    }
     return;
   }
 
